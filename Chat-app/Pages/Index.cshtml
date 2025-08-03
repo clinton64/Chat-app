@@ -1,0 +1,31 @@
+﻿@page
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SignalR Client</title>
+</head>
+<body style="font-family: Roboto,serif">
+
+    <div id="homeScreen" style="display:flex; flex-direction: column; gap:5px;">
+        <h1>SignalR Client</h1>
+        <input type="text" id="userName" placeholder="Username">
+        <input type="text" id="roomName" placeholder="Room">
+        <button id="joinRoom">Join Room</button>
+
+    </div>
+
+    <div id="chatScreen" style="display:none">
+        <h1 id="roomTitle"></h1>
+        <div id="messages"></div>
+        <div>
+            <input type="text" id="messageInput" placeholder="Message" autocomplete="off">
+        </div>
+    </div>
+</body>
+</html>
+
+<script src="~/js/signalr/dist/browser/signalr.js"></script>
+<script src="~/js/chat.js"></script>
+@* <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+ *@

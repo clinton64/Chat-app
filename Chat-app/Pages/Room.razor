@@ -1,0 +1,16 @@
+﻿<h3>@roomName</h3>
+
+@* messages *@
+<div>
+
+</div>
+@code {
+
+    public record User(string Name, string ConnectionId);
+    public record Message(string UserName, string Content, DateTime Timestamp);
+
+    private string roomName = "Default Room";
+    private List<User> users = new ();
+    private List<Message> messages = new ();
+
+}
