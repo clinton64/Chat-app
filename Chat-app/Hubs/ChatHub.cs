@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Chat_app.Models;
+using Chat_app.Services.IServices;
+using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
 
 namespace Chat_app.Hubs;
@@ -9,8 +11,19 @@ public record Message(string User, string Content);
 public class ChatHub : Hub
 {
     private static ConcurrentDictionary<string, User> _users = new();
+    private readonly IRoomService _roomService;
 
-    public override async Task OnDisconnectedAsync(Exception? exception)
+	public ChatHub(IRoomService roomService)
+	{
+		_roomService = roomService;
+	}
+
+    public async Task<IEnumerable<Room>> GetRooms()
+    {
+        return await Task.FromResult(_roomService.GetAllRooms());   
+	}
+
+	public override async Task OnDisconnectedAsync(Exception? exception)
     {
         if (_users.TryGetValue(Context.ConnectionId, out var user))
         {
