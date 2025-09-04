@@ -2,13 +2,28 @@
 
 var connection = new signalR.HubConnectionBuilder().withUrl("/chatHub").build();
 
-connection.start().catch(function (err) {
-    return console.error(err.toString());
-});
+connection.start()
+    .then(() => {
+        loadRooms();
+    })
+    .catch(function (err) {
+        return console.error(err.toString());
+    });
 
 document.getElementById("joinRoom").addEventListener("click", function () {
     const roomName = document.getElementById("roomName").value;
     const userName = document.getElementById("userName").value;
+
+    if (!roomName) {
+        alert("Select a Room");
+        return;
+    }
+
+    if (!userName) {
+        alert("Enter username");
+        return;
+    }
+
     connection.invoke("JoinRoom", userName, roomName);
     document.getElementById("homeScreen").style.display = "none";
     document.getElementById("chatScreen").style.display = "block";
@@ -44,3 +59,18 @@ connection.on("UserLeft", function (msg) {
     const user = `<span style="font-weight: bold">${msg} </span>`;
     messages.innerHTML += `<p style="color:grey">${user}has left.</p>`;
 });
+
+
+async function loadRooms() {
+    const rooms = await connection.invoke("GetRooms");
+    const roomList = document.getElementById("roomList");
+    rooms.forEach(room => {
+        const li = document.createElement("li");
+        li.textContent = room.name;
+        li.style.cursor = "pointer";
+        li.onclick = () => {
+            document.getElementById("roomName").value = room.name;
+        };
+        roomList.appendChild(li);
+    });
+}
