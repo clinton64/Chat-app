@@ -1,6 +1,7 @@
 ﻿"use strict";
 
 var connection = new signalR.HubConnectionBuilder().withUrl("/chatHub").build();
+let roomsCache = [];
 
 connection.start()
     .then(() => {
@@ -11,8 +12,8 @@ connection.start()
     });
 
 document.getElementById("joinRoom").addEventListener("click", function () {
-    const roomName = document.getElementById("roomName").value;
-    const userName = document.getElementById("userName").value;
+    const roomName = document.getElementById("roomName").value.trim();
+    const userName = document.getElementById("userName").value.trim();
 
     if (!roomName) {
         alert("Select a Room");
@@ -21,6 +22,13 @@ document.getElementById("joinRoom").addEventListener("click", function () {
 
     if (!userName) {
         alert("Enter username");
+        return;
+    }
+
+    // validate room name against cached rooms
+    const roomExists = roomsCache.some(r => r.name === roomName);
+    if (!roomExists) {
+        alert("Room does not exist. Please select a valid room.");
         return;
     }
 
@@ -33,7 +41,7 @@ document.getElementById("joinRoom").addEventListener("click", function () {
 
 document.getElementById("messageInput").addEventListener("keyup", function (event) {
     if (event.key === "Enter") {
-        const message = document.getElementById("messageInput").value;
+        const message = document.getElementById("messageInput").value.trim();
         const roomName = document.getElementById("roomName").value;
         if (message && roomName) {
             connection.invoke("SendMessageToRoom", roomName, message);
@@ -44,26 +52,47 @@ document.getElementById("messageInput").addEventListener("keyup", function (even
 
 connection.on("ReceiveMessage", function (msg) {
     const messages = document.getElementById("messages");
-    const user = `<span style="font-weight: bold">${msg.user}: </span>`;
-    messages.innerHTML += `<p>${user}<span>${msg.content}</span></p>`;
+
+    const p = document.createElement("p");
+    const strong = document.createElement("strong");
+    strong.textContent = msg.user + ": ";
+    const span = document.createElement("span");
+    span.textContent = msg.content;
+
+    p.appendChild(strong);
+    p.appendChild(span);
+    messages.appendChild(p);
+
+    messages.scrollTop = messages.scrollHeight; // Auto-scroll to the latest message
 });
 
-connection.on("UserJoined", function (msg) {
+connection.on("UserJoined", function (user) {
     const messages = document.getElementById("messages");
-    const user = `<span style="font-weight: bold">${msg} </span>`;
-    messages.innerHTML += `<p style="color:grey">${user}has joined.</p>`;
+    const p = document.createElement("p");
+    p.style.color = "grey";
+    p.textContent = user + " has joined.";
+    messages.appendChild(p);
+    messages.scrollTop = messages.scrollHeight; // Auto-scroll
 });
 
-connection.on("UserLeft", function (msg) {
+connection.on("UserLeft", function (user) {
     const messages = document.getElementById("messages");
-    const user = `<span style="font-weight: bold">${msg} </span>`;
-    messages.innerHTML += `<p style="color:grey">${user}has left.</p>`;
+    const p = document.createElement("p");
+    p.style.color = "grey";
+    p.textContent = user + " has left.";
 });
 
 
 async function loadRooms() {
     const rooms = await connection.invoke("GetRooms");
+    updateRoomList(rooms);
+}
+
+function updateRoomList(rooms){
+    roomsCache = rooms;
+
     const roomList = document.getElementById("roomList");
+
     rooms.forEach(room => {
         const li = document.createElement("li");
         li.textContent = room.name;
@@ -74,3 +103,14 @@ async function loadRooms() {
         roomList.appendChild(li);
     });
 }
+
+// 🔹 Listen for server notifications
+//connection.on("RoomCreated", function (room) {
+//    roomsCache.push(room);
+//    updateRoomList(roomsCache);
+//});
+
+//connection.on("RoomRemoved", function (roomName) {
+//    roomsCache = roomsCache.filter(r => r.name != roomName);
+//    updateRoomList(roomsCache);
+//});
