@@ -23,13 +23,33 @@
 
 
 
-    <div id="chatScreen" style="display:none">
-        <h1 id="roomTitle"></h1>
-        <div id="messages"></div>
-        <div>
-            <input type="text" id="messageInput" placeholder="Message" autocomplete="off">
+    <div id="chatScreen" class="container-fluid" style="display:none">
+        <div class="row mb-3">
+            <div class="col">
+                <h1 id="roomTitle"></h1>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Left: Chat messages -->
+            <div class="col-8 d-flex flex-column gap-2">
+                <div id="messages" class="border rounded p-2 mb-2" style="height: 400px; overflow-y: auto;">
+                    <!-- messages go here -->
+                </div>
+                <input type="text" id="messageInput" class="form-control" placeholder="Message" autocomplete="off">
+            </div>
+
+            <!-- Right: Room details + leave button -->
+            <div class="col-4">
+                <h2>Users in Room</h2>
+                <div id="userList" class="border rounded p-2 mb-3" style="height: 300px; overflow-y: auto;">
+                    <!-- users go here -->
+                </div>
+                <button id="leaveRoom" class="btn btn-danger w-100">Leave Room</button>
+            </div>
         </div>
     </div>
+
 
 </body>
 </html>

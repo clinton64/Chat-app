@@ -39,6 +39,15 @@ public class ChatHub : Hub
 		await Clients.Group(roomName).SendAsync("UserJoined", userName);
 	}
 
+	public async Task LeaveRoom()
+	{
+		if(_users.TryRemove(Context.ConnectionId, out var user))
+		{
+			await Groups.RemoveFromGroupAsync(Context.ConnectionId, user.Room);
+			await Clients.Group(user.Room).SendAsync("UserLeft", user.Name);
+		}
+	}
+
 	public async Task SendMessageToRoom(string roomName, string content)
 	{
 		var message = new Message(_users[Context.ConnectionId].Name, content);

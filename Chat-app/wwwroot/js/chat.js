@@ -39,6 +39,16 @@ document.getElementById("joinRoom").addEventListener("click", function () {
     document.getElementById("messageInput").focus();
 });
 
+document.getElementById("leaveRoom").addEventListener("click", function () {
+
+    connection.invoke("LeaveRoom").then(() => {
+        document.getElementById("chatScreen").style.display = "none";
+        document.getElementById("homeScreen").style.display = "block";
+        document.getElementById("roomName").value = "";
+        document.getElementById("messages").value = "";
+    });
+});
+
 document.getElementById("messageInput").addEventListener("keyup", function (event) {
     if (event.key === "Enter") {
         const message = document.getElementById("messageInput").value.trim();
@@ -92,6 +102,7 @@ function updateRoomList(rooms){
     roomsCache = rooms;
 
     const roomList = document.getElementById("roomList");
+    roomList.innerHTML = ''; // clear existing list
 
     rooms.forEach(room => {
         const li = document.createElement("li");
