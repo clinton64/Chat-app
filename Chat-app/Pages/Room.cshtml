@@ -1,0 +1,125 @@
+﻿@page "{id:int}"
+@model Chat_app.Pages.RoomModel
+
+<div class="row">
+    <div class="col-8">
+        <h1>@Model.Name</h1>
+        <div id="messages" class="border rounded p-2 mb-2" style="height:400px; overflow-y:auto;">
+            @foreach (var msg in Model.Messages)
+            {
+                <p>
+                    <span style="font-weight: bold">@msg.User: </span>
+                    <span>@msg.Content</span>
+                    @* <span style="color:grey; font-size:small">(@msg.Timestamp.ToLocalTime())</span> *@
+                </p>
+            }
+        </div>
+        <input type="text" id="messageInput" class="form-control" placeholder="Type your message..." autocomplete="on" />
+    </div>
+
+    <div class="col-4">
+        <h2>Users in Room</h2>
+        <div id="userList" class="border rounded p-2 mb-3" style="height: 300px; overflow-y:auto;">
+            @foreach (var user in Model.Users)
+            {
+                <p id="user_@user">@user</p>
+            }
+        </div>
+        <button id="leaveRoom" class="btn btn-danger w-100">Leave Room</button>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/signalr/dist/browser/signalr.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder().withUrl("/chatHub").build();
+
+        const roomName = "@Model.Name";
+        const userName = localStorage.getItem("chatUserName");
+
+        // Helper function to add/remove users from the right panel
+        function addUserToList(user){
+            const userList = document.getElementById("userList");
+            if(!document.getElementById(`user_${user}`)){
+                const p = document.createElement("p");
+                p.id = `user_${user}`;
+                p.textContent = user;
+                userList.appendChild(p);
+            }
+        }
+
+        function removeUserFromList(user){
+            const el = document.getElementById(`user_${user}`);
+            if(el) el.remove();
+        }
+
+        connection.start().then(() => {
+            if(userName){
+                connection.invoke("JoinRoom", userName, roomName);
+            }
+        });
+
+        document.getElementById("leaveRoom").addEventListener("click", function () {
+            connection.invoke("LeaveRoom").then(() => {
+               window.location.href = `/`;
+            });
+        });
+
+        document.getElementById("messageInput").addEventListener("keyup", function (event) {
+            if(event.key === "Enter"){
+                const message = this.value.trim();
+                if(message && roomName){
+                    connection.invoke("SendMessageToRoom", roomName, message);
+                    this.value = '';
+                }
+            }
+        });
+
+        connection.on("ReceiveMessage", function(msg){
+            const messages = document.getElementById("messages");
+            const p = document.createElement("p");
+            const strong = document.createElement("strong");
+            strong.textContent = msg.user + ": ";
+            const span = document.createElement("span");
+            span.textContent = msg.content;
+
+            p.appendChild(strong);
+            p.appendChild(span);
+            messages.appendChild(p);
+            messages.scrollTop = messages.scrollHeight;
+        });
+
+        connection.on("UserJoined", function(user){
+            // Add user to right panel
+            addUserToList(user);
+
+            // Optional: show message
+            const messages = document.getElementById("messages");
+            const p = document.createElement("p");
+            p.style.color = "grey";
+            p.textContent = user + " has joined.";
+            messages.appendChild(p);
+            messages.scrollTop = messages.scrollHeight;
+        });
+
+        connection.on("UserLeft", function(user){
+            // Remove user from right panel
+            removeUserFromList(user);
+
+            // Optional: show message
+            const messages = document.getElementById("messages");
+            const p = document.createElement("p");
+            p.style.color = "grey";
+            p.textContent = user + " has left.";
+            messages.appendChild(p);
+            messages.scrollTop = messages.scrollHeight;
+        });
+
+        // Initialize user list with current users (if your hub sends this)
+        connection.on("UpdateUserList", function(users){
+            const userList = document.getElementById("userList");
+            userList.innerHTML = '';
+            users.forEach(u => addUserToList(u));
+        });
+    </script>
+}
