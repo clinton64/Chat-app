@@ -1,13 +1,14 @@
-﻿namespace Chat_app.Models;
+﻿using System.Collections.Concurrent;
+
+namespace Chat_app.Models;
 
 public class Room
 {
 	public int Id { get; set; }
 	public string Name { get; set; }
 
-	public List<string> Users { get; set; } = new List<string>();
-
-	public List<string> Messages { get; set; } = new List<string>();
+	private ConcurrentDictionary<string, bool> _users = new();
+	private ConcurrentQueue<Message> _messages = new();
 
 	public Room(int id, string name)
 	{
@@ -15,33 +16,25 @@ public class Room
 		Name = name;
 	}
 
-	public void AddUser(string userName)
-	{
-		if (!Users.Contains(userName))
-		{
-			Users.Add(userName);
-		}
-	}
+	// Users
+	public IEnumerable<string> Users => _users.Keys;
 
-	public void RemoveUser(string userName)
-	{
-		if (Users.Contains(userName))
-		{
-			Users.Remove(userName);
-		}
-	}
+	public bool AddUser(string userName) => _users.TryAdd(userName, true);
 
-	public void AddMessage(string message)
-	{
-		Messages.Add(message);
-	}
+	public bool RemoveUser(string userName) => _users.TryRemove(userName, out _);
+
+	// Messages
+	public IEnumerable<Message> Messages => _messages.ToList();
+
+	public void AddMessage(Message message) => _messages.Enqueue(message);
 
 	public void ClearMessages()
 	{
-		Messages.Clear();
+		while (_messages.TryDequeue(out _)) { }
 	}
+
 	public override string ToString()
 	{
-		return $"Room: {Name}, Users: {string.Join(", ", Users)}, Messages: {string.Join("; ", Messages)}";
+		return $"Room: {Name}, Users: {string.Join(", ", _users.Keys)}, Messages: {string.Join("; ", _messages)}";
 	}
 }

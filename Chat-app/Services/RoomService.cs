@@ -1,12 +1,15 @@
 ﻿using Chat_app.Models;
 using Chat_app.Services.IServices;
+using System.Collections.Concurrent;
 
 namespace Chat_app.Services;
 
 public class RoomService : IRoomService
 {
-	private readonly IList<Room> _rooms = new List<Room>
+	private ConcurrentDictionary<int, Room> _rooms = new();
+	public RoomService()
 		{
+		var seedRooms = new List<Room> {
 			new Room(1, "General"),
 			new Room(2, "Sports"),
 			new Room(3, "Technology"),
@@ -20,58 +23,59 @@ public class RoomService : IRoomService
 			new Room(11, "Art"),
 			new Room(12, "History")
 		};
+		foreach(var r in seedRooms)
+			_rooms.TryAdd(r.Id, r);
+	}
 	public void AddRoom(Room room)
 	{
-		throw new NotImplementedException();
+		if (RoomExists(room.Name))
+			return;
+
+		_rooms.TryAdd(room.Id, room);
 	}
 
 	public void AddUserToRoom(string userName, string roomName)
 	{
-		throw new NotImplementedException();
+		var room = GetRoomByName(roomName);
+
+		room?.AddUser(userName);
 	}
 
 	public void ClearMessages(int roomId)
 	{
-		throw new NotImplementedException();
+		if (_rooms.TryGetValue(roomId, out var room))
+			room.ClearMessages();
 	}
 
 	public void ClearMessages(string roomName)
 	{
-		throw new NotImplementedException();
+		var room = GetRoomByName(roomName);
+		room?.ClearMessages();
 	}
 
 	public void DeleteRoom(int roomId)
 	{
-		throw new NotImplementedException();
+		_rooms.TryRemove(roomId, out _);
 	}
 
-	public IEnumerable<Room> GetAllRooms()
-	{
-		return _rooms;
-	}
+	public IEnumerable<Room> GetAllRooms() => _rooms.Values;
 
 	public Room? GetRoomById(int roomId)
-	{
-		return _rooms.FirstOrDefault(r => r.Id == roomId);
-	}
+		=>  _rooms.TryGetValue(roomId, out var room) ? room : null;
+	
 
 	public Room? GetRoomByName(string roomName)
-	{
-		return _rooms.FirstOrDefault(r => r.Name == roomName);
-	}
+		=> _rooms.Values.FirstOrDefault(r => r.Name.Equals(roomName, StringComparison.OrdinalIgnoreCase));
 
 	public bool RoomExists(string roomName)
-	{
-		return _rooms.Any(r => r.Name == roomName);
-	}
+		=> _rooms.Values.Any(r => r.Name.Equals(roomName, StringComparison.OrdinalIgnoreCase));
+	
 
 	public bool RoomExists(int roomId)
-	{
-		return _rooms.Any(r => r.Id == roomId);
-	}
+		=> _rooms.ContainsKey(roomId);
 
 	public void UpdateRoom(Room room)
 	{
-		throw new NotImplementedException();
+		_rooms.AddOrUpdate(room.Id, room, (id, existing) => room);
 	}
 }
