@@ -1,9 +1,8 @@
-﻿using System.Collections.Concurrent;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Chat_app.Models;
 
-public class Room
+public class User
 {
 	[Key]
 	public int Id { get; set; }
@@ -14,5 +13,6 @@ public class Room
 
 	public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+	// Navigation: which rooms this user belongs to
 	public ICollection<RoomUser> RoomUsers { get; set; } = new List<RoomUser>();
 }
