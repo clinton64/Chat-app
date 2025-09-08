@@ -1,10 +1,20 @@
-﻿namespace Chat_app.Models;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+
+namespace Chat_app.Models;
 
 public class Message
 {
-	public string User { get; set; }
-	public string Content { get; set; }
-	public DateTime Timestamp { get; set; }
+	[BsonId]
+	[BsonRepresentation(BsonType.ObjectId)]
+	public string Id { get; set; } = string.Empty;
+
+	public string RoomName { get; set; } = string.Empty;
+	public string User { get; set; } = string.Empty;
+	public string Content { get; set; } = string.Empty;
+	public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+	public Message() { }
 
 	public Message(string user, string content)
 	{

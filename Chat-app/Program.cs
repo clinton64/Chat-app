@@ -1,3 +1,4 @@
+using Chat_app.Data;
 using Chat_app.Hubs;
 using Chat_app.Services;
 using Chat_app.Services.IServices;
@@ -7,7 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
-builder.Services.AddSingleton<IRoomService, RoomService>();
+builder.Services.AddScoped<IRoomService, RoomService>();
+builder.Services.AddScoped<IMessageService, MessageService>();
+
+builder.Services.AddSqlServer<AppDbContext>(builder.Configuration.GetConnectionString("SqlServer"));
 
 var app = builder.Build();
 
