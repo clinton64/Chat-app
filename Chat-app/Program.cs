@@ -1,5 +1,7 @@
 using Chat_app.Data;
 using Chat_app.Hubs;
+using Chat_app.Repository;
+using Chat_app.Repository.IRepository;
 using Chat_app.Services;
 using Chat_app.Services.IServices;
 
@@ -10,6 +12,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
+builder.Services.AddScoped<IRoomRepository, RoomRepository>();
 
 builder.Services.AddSqlServer<AppDbContext>(builder.Configuration.GetConnectionString("SqlServer"));
 
