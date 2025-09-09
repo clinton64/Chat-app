@@ -1,81 +1,65 @@
 ﻿using Chat_app.Models;
+using Chat_app.Repository.IRepository;
 using Chat_app.Services.IServices;
-using System.Collections.Concurrent;
 
 namespace Chat_app.Services;
 
 public class RoomService : IRoomService
 {
-	private ConcurrentDictionary<int, Room> _rooms = new();
-	public RoomService()
-		{
-		var seedRooms = new List<Room> {
-			new Room(1, "General"),
-			new Room(2, "Sports"),
-			new Room(3, "Technology"),
-			new Room(4, "Music"),
-			new Room(5, "Movies"),
-			new Room(6, "Gaming"),
-			new Room(7, "Travel"),
-			new Room(8, "Food"),
-			new Room(9, "Health"),
-			new Room(10, "Science"),
-			new Room(11, "Art"),
-			new Room(12, "History")
-		};
-		foreach(var r in seedRooms)
-			_rooms.TryAdd(r.Id, r);
-	}
-	public void AddRoom(Room room)
-	{
-		if (RoomExists(room.Name))
-			return;
+	private readonly IRoomRepository _roomRepository;
 
-		_rooms.TryAdd(room.Id, room);
+	public RoomService(IRoomRepository roomRepository)
+	{
+		_roomRepository = roomRepository;
 	}
 
-	public void AddUserToRoom(string userName, string roomName)
+	// --- ROOMS ---
+	public async Task<IEnumerable<Room>> GetAllRoomsAsync()
 	{
-		var room = GetRoomByName(roomName);
-
-		room?.AddUser(userName);
+		return await _roomRepository.GetAll<Room>();
 	}
 
-	public void ClearMessages(int roomId)
+	public async Task<Room?> GetRoomByIdAsync(int roomId)
 	{
-		if (_rooms.TryGetValue(roomId, out var room))
-			room.ClearMessages();
+		return await _roomRepository.GetFirstOrDefault(filter: r => r.Id == roomId, includeProperties: "RoomUsers");
 	}
 
-	public void ClearMessages(string roomName)
+	public async Task<Room?> GetRoomByNameAsync(string roomName)
 	{
-		var room = GetRoomByName(roomName);
-		room?.ClearMessages();
+		return await _roomRepository.GetFirstOrDefault(filter: r => r.Name.ToLower() == roomName.ToLower(), includeProperties: "RoomUsers");
 	}
 
-	public void DeleteRoom(int roomId)
+	public async Task<bool> RoomExistsAsync(string roomName)
 	{
-		_rooms.TryRemove(roomId, out _);
+		return await _roomRepository.Exists(filter: r => r.Name.ToLower() == roomName.ToLower());
 	}
 
-	public IEnumerable<Room> GetAllRooms() => _rooms.Values;
-
-	public Room? GetRoomById(int roomId)
-		=>  _rooms.TryGetValue(roomId, out var room) ? room : null;
-	
-
-	public Room? GetRoomByName(string roomName)
-		=> _rooms.Values.FirstOrDefault(r => r.Name.Equals(roomName, StringComparison.OrdinalIgnoreCase));
-
-	public bool RoomExists(string roomName)
-		=> _rooms.Values.Any(r => r.Name.Equals(roomName, StringComparison.OrdinalIgnoreCase));
-	
-
-	public bool RoomExists(int roomId)
-		=> _rooms.ContainsKey(roomId);
-
-	public void UpdateRoom(Room room)
+	public async Task<Room> AddRoomAsync(Room room)
 	{
-		_rooms.AddOrUpdate(room.Id, room, (id, existing) => room);
+		return await _roomRepository.Add(room);
+	}
+
+	public async Task DeleteRoomAsync(int roomId)
+	{
+		var room = await GetRoomByIdAsync(roomId);
+		if(room == null) return;
+
+		await _roomRepository.Remove(room);
+	}
+
+	// --- USERS IN ROOMS ---
+	public async Task<bool> AddUserToRoomAsync(string userName, string roomName)
+	{
+		return await _roomRepository.AddUserToRoomAsync(userName, roomName);
+	}
+
+	public async Task<bool> RemoveUserFromRoomAsync(string userName, string roomName)
+	{
+		return await _roomRepository.RemoveUserFromRoomAsync(userName, roomName);	
+	}
+
+	public async Task<IEnumerable<User>> GetUsersInRoomAsync(int roomId)
+	{
+		return await _roomRepository.GetUsersInRoomAsync(roomId);
 	}
 }

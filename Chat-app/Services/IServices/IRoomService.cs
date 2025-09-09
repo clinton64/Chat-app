@@ -4,25 +4,16 @@ namespace Chat_app.Services.IServices;
 
 public interface IRoomService
 {
-	public IEnumerable<Room> GetAllRooms();
+	// Rooms
+	Task<IEnumerable<Room>> GetAllRoomsAsync();
+	Task<Room?> GetRoomByIdAsync(int roomId);
+	Task<Room?> GetRoomByNameAsync(string roomName);
+	Task<bool> RoomExistsAsync(string roomName);
+	Task<Room> AddRoomAsync(Room room);
+	Task DeleteRoomAsync(int roomId);
 
-	public Room? GetRoomByName(string roomName);
-
-	public Room? GetRoomById(int roomId);
-
-	public void AddRoom(Room room);
-
-	public void UpdateRoom(Room room);
-
-	public void DeleteRoom(int roomId);
-
-	public bool RoomExists(string roomName);
-
-	public bool RoomExists(int roomId);
-
-	public void ClearMessages(int roomId);
-
-	public void ClearMessages(string roomName);
-
-	public void AddUserToRoom(string userName, string roomName);
+	// Users in rooms
+	Task<bool> AddUserToRoomAsync(string userName, string roomName);
+	Task<bool> RemoveUserFromRoomAsync(string userName, string roomName);
+	Task<IEnumerable<User>> GetUsersInRoomAsync(int roomId);
 }
