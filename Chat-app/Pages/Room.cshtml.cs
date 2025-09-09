@@ -8,10 +8,12 @@ namespace Chat_app.Pages;
 public class RoomModel : PageModel
 {
 	private readonly IRoomService _roomService;
+	private readonly IMessageService _messageService;
 
-	public RoomModel(IRoomService roomService)
+	public RoomModel(IRoomService roomService, IMessageService messageService)
 	{
 		_roomService = roomService;	
+		_messageService = messageService;
 	}
 
 	[BindProperty(SupportsGet =true)]
@@ -22,16 +24,16 @@ public class RoomModel : PageModel
 	public List<Message> Messages { get; set; } = new ();
 
 
-	public IActionResult OnGet()
+	public async Task<IActionResult> OnGetAsync()
 	{
-		var room = _roomService.GetRoomById(Id);
+		var room = await _roomService.GetRoomByIdAsync(Id);
 		if (room == null)
 			return NotFound();
 		
 		Id = room.Id;
 		Name = room.Name;
-		Users = room.Users.ToList();
-		Messages = room.Messages.ToList();
+		Users = _roomService.GetUsersInRoomAsync(room.Id).Result.Select(u => u.Name).ToList();
+		Messages = _messageService.GetMessagesForRoomAsync(Name).Result.ToList();
 		return Page();	
 	}
 }

@@ -4,88 +4,99 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace Chat_app.Hubs;
 
-public record User(string Name, string Room);
+public record ConnectedUser(string Name, string Room);
 
 public class ChatHub : Hub
 {
-	private static readonly Dictionary<string, User> _users = new();
+	private static readonly Dictionary<string, ConnectedUser> _connections = new();
 	private readonly IRoomService _roomService;
+	private readonly IMessageService _messageService;
 
-	public ChatHub(IRoomService roomService)
+	public ChatHub(IRoomService roomService, IMessageService messageService)
 	{
 		_roomService = roomService;
+		_messageService = messageService;
 	}
 
+	// Get list of rooms (SQL)
 	public async Task<IEnumerable<Room>> GetRooms()
 	{
-		return await Task.FromResult(_roomService.GetAllRooms());
+		return await _roomService.GetAllRoomsAsync();
 	}
 
 	public override async Task OnDisconnectedAsync(Exception? exception)
 	{
-		if (_users.TryGetValue(Context.ConnectionId, out var user))
+		if (_connections.TryGetValue(Context.ConnectionId, out var user))
 		{
-			_users.Remove(Context.ConnectionId);
+			_connections.Remove(Context.ConnectionId);
 
-			var room = _roomService.GetRoomByName(user.Room);
-			room?.RemoveUser(user.Name);
-
+			await _roomService.RemoveUserFromRoomAsync(user.Name, user.Room);
 			await Groups.RemoveFromGroupAsync(Context.ConnectionId, user.Room);
 
-			// Notify Others
+			// Notify others
 			await Clients.Group(user.Room).SendAsync("UserLeft", user.Name);
 
 			// Update user list
-			var usersInRoom = _roomService.GetRoomByName(user.Room)?.Users ?? Enumerable.Empty<string>();
-			await Clients.Group(user.Room).SendAsync("UpdateUserList", usersInRoom);
+			var usersInRoom = await _roomService.GetUsersInRoomAsync(
+				(await _roomService.GetRoomByNameAsync(user.Room))!.Id
+			);
+			await Clients.Group(user.Room).SendAsync("UpdateUserList", usersInRoom.Select(u => u.Name));
 		}
+
 		await base.OnDisconnectedAsync(exception);
 	}
 
 	public async Task JoinRoom(string userName, string roomName)
 	{
-		_roomService.AddUserToRoom(userName, roomName);
-		_users[Context.ConnectionId] = new User(userName, roomName);
+		await _roomService.AddUserToRoomAsync(userName, roomName);
+		_connections[Context.ConnectionId] = new ConnectedUser(userName, roomName);
 
 		await Groups.AddToGroupAsync(Context.ConnectionId, roomName);
 
-		// Notify others in the room
+		// Notify others
 		await Clients.Group(roomName).SendAsync("UserJoined", userName);
 
-		// Send updated user list to everyone
-		var usersInRoom = _roomService.GetRoomByName(roomName)?.Users ?? Enumerable.Empty<string>();
-		await Clients.Group(roomName).SendAsync("UpdateUserList", usersInRoom);
+		// Updated user list
+		var room = await _roomService.GetRoomByNameAsync(roomName);
+		if (room != null)
+		{
+			var usersInRoom = await _roomService.GetUsersInRoomAsync(room.Id);
+			await Clients.Group(roomName).SendAsync("UpdateUserList", usersInRoom.Select(u => u.Name));
+		}
 	}
 
 	public async Task LeaveRoom()
 	{
-		if(_users.TryGetValue(Context.ConnectionId, out var user))
+		if (_connections.TryGetValue(Context.ConnectionId, out var user))
 		{
-			_users.Remove(Context.ConnectionId);
+			_connections.Remove(Context.ConnectionId);
 
-			var room = _roomService.GetRoomByName(user.Room);
-			room?.RemoveUser(user.Name);
-
+			await _roomService.RemoveUserFromRoomAsync(user.Name, user.Room);
 			await Groups.RemoveFromGroupAsync(Context.ConnectionId, user.Room);
-			
-			//Notify Others
+
+			// Notify others
 			await Clients.Group(user.Room).SendAsync("UserLeft", user.Name);
 
-			// Send updated User list
-			var usersInRoom = _roomService.GetRoomByName(user.Room)?.Users ?? Enumerable.Empty<string>();
-			await Clients.Group(user.Room).SendAsync("UpdateUserList", usersInRoom);
+			// Updated user list
+			var room = await _roomService.GetRoomByNameAsync(user.Room);
+			if (room != null)
+			{
+				var usersInRoom = await _roomService.GetUsersInRoomAsync(room.Id);
+				await Clients.Group(user.Room).SendAsync("UpdateUserList", usersInRoom.Select(u => u.Name));
+			}
 		}
 	}
 
 	public async Task SendMessageToRoom(string roomName, string content)
 	{
-		if (_users.TryGetValue(Context.ConnectionId, out var user))
+		if (_connections.TryGetValue(Context.ConnectionId, out var user))
 		{
 			var message = new Message(user.Name, content);
 
-			var room = _roomService.GetRoomByName(roomName);
-			room?.AddMessage(message);
+			// Save message in MongoDB
+			await _messageService.SaveMessageAsync(roomName, message);
 
+			// Broadcast
 			await Clients.Group(roomName).SendAsync("ReceiveMessage", message);
 		}
 	}
